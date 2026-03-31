@@ -50,11 +50,12 @@ const nextConfig = {
               "default-src 'self'",
               "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
               "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net",
-              "img-src 'self' data: https://cdn.music-flo.com https://cdnimg.music-flo.com https://image.music-flo.com https://img.music-flo.com",
+              "img-src 'self' data: https://cdn.music-flo.com https://cdnimg.music-flo.com https://image.music-flo.com https://img.music-flo.com https://i.ytimg.com https://i3.ytimg.com",
               process.env.NEXT_PUBLIC_SUPABASE_URL
                 ? "connect-src 'self' https://cdn.jsdelivr.net https://*.supabase.co wss://*.supabase.co https://*.supabase.in wss://*.supabase.in"
                 : "connect-src 'self' https://cdn.jsdelivr.net",
               "font-src 'self' https://cdn.jsdelivr.net",
+              "frame-src https://www.youtube.com https://www.tiktok.com https://www.instagram.com",
               "frame-ancestors 'none'",
             ].join('; '),
           },
