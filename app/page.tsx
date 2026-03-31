@@ -16,18 +16,9 @@ const TAB_OPTIONS: { id: TabId; label: string }[] = [
   { id: 'instagram', label: '릴스' },
 ]
 
-function MusicNoteIcon() {
-  return (
-    <svg width="24" height="24" viewBox="0 0 24 24" fill="white" opacity={0.9}>
-      <path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z" />
-    </svg>
-  )
-}
-
 function HomeContent() {
   const searchParams = useSearchParams()
   const songTitle = searchParams.get('title') ?? MOCK_SONG.title
-  const songArtist = searchParams.get('artist') ?? MOCK_SONG.artist
 
   const [activeTab, setActiveTab] = useState<TabId>('all')
   const [selectedVideo, setSelectedVideo] = useState<VideoItem | null>(null)
@@ -66,27 +57,29 @@ function HomeContent() {
     <div className="mobile-container bg-surface min-h-screen">
       {/* ── 고정 헤더 ── */}
       <div className="sticky top-0 bg-surface z-10">
-        {/* 곡 정보 */}
-        <div className="flex items-center gap-3 px-4 pt-4 pb-3 border-b border-[var(--color-border)]">
-          {/* 앨범 아트 플레이스홀더 */}
-          <div
-            className="w-11 h-11 rounded-xl flex-shrink-0 flex items-center justify-center shadow-s"
-            style={{ background: 'linear-gradient(135deg, #5868ff, #9ab2ff)' }}
+        {/* 상단 바: 뒤로가기 + 타이틀 + 개수 */}
+        <div className="flex items-center gap-2 px-2 pt-4 pb-3 border-b border-[var(--color-border)]">
+          {/* 뒤로가기 버튼 */}
+          <button
+            id="btn-back"
+            onClick={() => window.history.back()}
+            className="flex-shrink-0 w-9 h-9 flex items-center justify-center rounded-full hover:bg-surface-primary active:bg-surface-secondary transition-colors"
+            aria-label="뒤로가기"
           >
-            <MusicNoteIcon />
-          </div>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" className="text-fg-primary">
+              <path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z" />
+            </svg>
+          </button>
 
-          {/* 곡 제목 / 아티스트 */}
-          <div className="min-w-0 flex-1">
-            <p className="text-body2-strong text-fg-primary truncate">{songTitle}</p>
-            <p className="text-caption1 text-fg-secondary truncate">{songArtist}</p>
-          </div>
-        </div>
+          {/* 타이틀: {곡명}이 사용된 영상 */}
+          <p className="text-body2-strong text-fg-primary truncate flex-1">
+            {songTitle}이 사용된 영상
+          </p>
 
-        {/* 섹션 타이틀 */}
-        <div className="flex items-center justify-between px-4 pt-3 pb-1">
-          <p className="text-body2-strong text-fg-primary">이 음악이 사용된 영상</p>
-          <p className="text-caption1 text-fg-tertiary">{filteredVideos.length}개</p>
+          {/* 영상 개수 */}
+          <span className="flex-shrink-0 text-caption1 text-fg-tertiary">
+            {filteredVideos.length}개
+          </span>
         </div>
 
         {/* 탭 필터 */}
@@ -99,9 +92,9 @@ function HomeContent() {
         </div>
       </div>
 
-      {/* ── 영상 그리드 ── */}
+      {/* ── 영상 그리드 (4열) ── */}
       {filteredVideos.length > 0 ? (
-        <div className="grid grid-cols-2 gap-1.5 p-2">
+        <div className="grid grid-cols-4 gap-0.5 p-0.5">
           {filteredVideos.map((video) => (
             <VideoCard
               key={video.id}
