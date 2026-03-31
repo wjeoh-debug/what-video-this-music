@@ -41,9 +41,8 @@ function PlatformBadge({ platform }: { platform: VideoItem['platform'] }) {
   const { bg, label, icon } = config[platform]
 
   return (
-    <div className={`flex items-center gap-1 ${bg} rounded-full px-2 py-1`}>
+    <div className={`flex items-center justify-center ${bg} rounded-full w-6 h-6`}>
       {icon}
-      <span className="text-white text-caption2-strong">{label}</span>
     </div>
   )
 }
@@ -90,21 +89,18 @@ export function VideoCard({ video, onClick }: VideoCardProps) {
       </div>
 
       {/* 재생 시간 (우상단) */}
-      <div className="absolute top-2 right-2 bg-black/60 rounded px-1.5 py-0.5">
-        <span className="text-white text-caption2-strong">{video.duration}</span>
+      <div className="absolute top-2 right-2 bg-black/60 rounded px-1.5 flex items-center" style={{ height: '18px' }}>
+        <span className="text-white text-caption2-strong leading-none">{video.duration}</span>
       </div>
 
       {/* 하단 그라디언트 + 정보 */}
-      <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent p-3 pt-10">
+      <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent p-2 pt-8">
         <p className="text-white text-body2-strong line-clamp-2 leading-snug">{video.title}</p>
-        <div className="flex items-center justify-between mt-1.5">
-          <span className="text-white/70 text-caption1">{video.creator}</span>
-          <div className="flex items-center gap-1">
-            <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor" className="text-white/60">
-              <path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z" />
-            </svg>
-            <span className="text-white/70 text-caption2-strong">{video.views}</span>
-          </div>
+        <div className="flex items-center gap-1 mt-1">
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor" className="text-white/60 flex-shrink-0">
+            <path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z" />
+          </svg>
+          <span className="text-white/70 text-caption2-strong">{video.views}</span>
         </div>
       </div>
     </button>
