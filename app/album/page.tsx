@@ -191,7 +191,7 @@ function VideosTabContent() {
   const VIDEO_SUB_TABS: { id: VideoSubTab; label: string }[] = [
     { id: 'all', label: '전체' },
     { id: 'official', label: '공식 영상' },
-    { id: 'related', label: 'Shorts' },
+    { id: 'related', label: '짧은 영상' },
   ]
 
   return (
