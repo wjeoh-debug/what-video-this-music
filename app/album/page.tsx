@@ -1,15 +1,18 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
-import { useState } from 'react'
-import { MOCK_VIDEOS, MOCK_SONG } from '@/constants/mockVideos'
-import { VideoSwipeSection } from '@/components/VideoSwipeSection'
+import { useState, useCallback, useMemo } from 'react'
+import { MOCK_VIDEOS, MOCK_SONG, type VideoItem } from '@/constants/mockVideos'
+import { VideoCard } from '@/components/VideoCard'
+import { SortFilter, type SortType } from '@/components/SortFilter'
+import { PlayerModal } from '@/components/PlayerModal'
 
 // ── 목업 데이터 ──────────────────────────────────────────────
 const ALBUM = {
   title: 'How Sweet',
   artist: 'NewJeans',
   releaseDate: '2024.05.24',
+  genre: '댄스팝',
   trackCount: 5,
   gradient: 'linear-gradient(135deg, #f9a8d4 0%, #e879f9 40%, #818cf8 100%)',
 }
@@ -30,9 +33,53 @@ const DETAILS = [
   { label: '앨범 유형', value: 'EP' },
 ]
 
-type Tab = 'tracks' | 'info'
+const OFFICIAL_VIDEOS = [
+  {
+    id: 'mv-1',
+    title: "[MV] NewJeans (뉴진스) 'How Sweet'",
+    views: '5,234만회',
+    duration: '3:10',
+    publishedAt: '2024.05.24',
+    gradientFrom: '#f9a8d4',
+    gradientVia: '#e879f9',
+    gradientTo: '#818cf8',
+    ageRating: 12,
+  },
+  {
+    id: 'mv-2',
+    title: "[MV] NewJeans (뉴진스) 'Bubble Gum'",
+    views: '4,892만회',
+    duration: '2:58',
+    publishedAt: '2024.05.24',
+    gradientFrom: '#fde68a',
+    gradientVia: undefined as string | undefined,
+    gradientTo: '#fb923c',
+    ageRating: null as number | null,
+  },
+  {
+    id: 'mv-3',
+    title: "NewJeans (뉴진스) 'How Sweet' Performance Video",
+    views: '2,841만회',
+    duration: '3:12',
+    publishedAt: '2024.06.01',
+    gradientFrom: '#818cf8',
+    gradientVia: undefined as string | undefined,
+    gradientTo: '#c084fc',
+    ageRating: null as number | null,
+  },
+]
 
-// ── 수록곡 탭 ────────────────────────────────────────────────
+type Tab = 'tracks' | 'info' | 'videos'
+type VideoSubTab = 'all' | 'official' | 'related'
+
+function sortVideos(videos: VideoItem[], sort: SortType): VideoItem[] {
+  return [...videos].sort((a, b) => {
+    if (sort === 'popular') return b.viewCount - a.viewCount
+    return new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime()
+  })
+}
+
+// ── 수록곡 행 ────────────────────────────────────────────────
 function TrackRow({
   track,
   isPlaying,
@@ -51,7 +98,6 @@ function TrackRow({
       onKeyDown={(e) => e.key === 'Enter' && onClick()}
       className="w-full flex items-center gap-3 px-4 py-3 active:bg-[var(--color-surface-primary)] transition-colors cursor-pointer"
     >
-      {/* 트랙 번호 / 재생 중 표시 */}
       <div className="w-6 flex-shrink-0 flex items-center justify-center">
         {isPlaying ? (
           <div className="flex items-end gap-[2px] h-4">
@@ -65,8 +111,6 @@ function TrackRow({
           </span>
         )}
       </div>
-
-      {/* 타이틀 + 타이틀곡 뱃지 */}
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-1.5">
           <span className={`text-[14px] font-medium truncate ${isPlaying ? 'text-[#5868ff]' : 'text-[var(--color-text-primary)]'}`}>
@@ -80,8 +124,6 @@ function TrackRow({
         </div>
         <p className="text-[12px] text-[var(--color-text-tertiary)] mt-0.5">{ALBUM.artist}</p>
       </div>
-
-      {/* 재생시간 + ... */}
       <div className="flex items-center gap-2 flex-shrink-0">
         <span className="text-[12px] text-[var(--color-text-tertiary)]">{track.duration}</span>
         <button
@@ -98,20 +140,175 @@ function TrackRow({
   )
 }
 
+// ── 공식 영상 카드 (16:9 전체 너비) ──────────────────────────
+function OfficialVideoCard({ video }: { video: (typeof OFFICIAL_VIDEOS)[0] }) {
+  const thumbnailStyle = {
+    background: video.gradientVia
+      ? `linear-gradient(135deg, ${video.gradientFrom}, ${video.gradientVia}, ${video.gradientTo})`
+      : `linear-gradient(135deg, ${video.gradientFrom}, ${video.gradientTo})`,
+  }
+  return (
+    <div id={`official-video-${video.id}`} className="px-4 py-3 cursor-pointer active:opacity-80 transition-opacity">
+      <div className="relative w-full rounded-xl overflow-hidden" style={{ aspectRatio: '16/9' }}>
+        <div className="absolute inset-0" style={thumbnailStyle} />
+        {/* 재생 아이콘 */}
+        <div className="absolute inset-0 flex items-center justify-center">
+          <div className="w-12 h-12 rounded-full bg-black/40 backdrop-blur-sm flex items-center justify-center">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="white">
+              <path d="M8 5v14l11-7z" />
+            </svg>
+          </div>
+        </div>
+        {/* 연령 등급 */}
+        {video.ageRating && (
+          <div className="absolute top-2 right-2 w-6 h-6 rounded-full bg-yellow-400 flex items-center justify-center">
+            <span className="text-[10px] font-bold text-black leading-none">{video.ageRating}</span>
+          </div>
+        )}
+        {/* 재생시간 */}
+        <div className="absolute bottom-2 right-2 bg-black/70 rounded px-1.5 py-0.5">
+          <span className="text-white text-[11px] font-medium">{video.duration}</span>
+        </div>
+      </div>
+      <div className="mt-2">
+        <p className="text-[14px] font-medium text-[var(--color-text-primary)] line-clamp-2 leading-snug">{video.title}</p>
+        <p className="text-[12px] text-[var(--color-text-tertiary)] mt-0.5">{video.views} · {video.publishedAt}</p>
+      </div>
+    </div>
+  )
+}
+
+// ── 영상 탭 전체 컨텐츠 ───────────────────────────────────────
+function VideosTabContent() {
+  const [videoSubTab, setVideoSubTab] = useState<VideoSubTab>('all')
+  const [sortType, setSortType] = useState<SortType>('popular')
+  const [selectedVideo, setSelectedVideo] = useState<VideoItem | null>(null)
+
+  const sortedVideos = useMemo(() => sortVideos(MOCK_VIDEOS, sortType), [sortType])
+
+  const handleClose = useCallback(() => setSelectedVideo(null), [])
+
+  const VIDEO_SUB_TABS: { id: VideoSubTab; label: string }[] = [
+    { id: 'all', label: '전체' },
+    { id: 'official', label: '공식 영상' },
+    { id: 'related', label: 'Shorts' },
+  ]
+
+  return (
+    <div>
+      {/* 하위 탭: 전체 | 공식 영상 | 관련 영상 + 정렬 필터 */}
+      <div className="flex items-center border-b border-[var(--color-border)] px-4">
+        <div className="flex flex-1">
+          {VIDEO_SUB_TABS.map((tab) => (
+            <button
+              key={tab.id}
+              id={`video-sub-tab-${tab.id}`}
+              onClick={() => setVideoSubTab(tab.id)}
+              className={`py-2.5 mr-5 text-[14px] font-medium transition-colors relative whitespace-nowrap ${
+                videoSubTab === tab.id ? 'text-[var(--color-text-primary)]' : 'text-[var(--color-text-tertiary)]'
+              }`}
+            >
+              {tab.label}
+              {videoSubTab === tab.id && (
+                <span className="absolute bottom-0 left-0 right-0 h-[2px] bg-[var(--color-text-primary)] rounded-full" />
+              )}
+            </button>
+          ))}
+        </div>
+        {/* 정렬 필터: 관련 영상 탭일 때만 표시 */}
+        {videoSubTab === 'related' && (
+          <div className="flex-shrink-0 pb-1">
+            <SortFilter value={sortType} onChange={setSortType} />
+          </div>
+        )}
+      </div>
+
+      {/* ── 전체 탭 ── */}
+      {videoSubTab === 'all' && (
+        <div>
+          {/* 공식 영상 섹션 */}
+          <div className="pt-1">
+            <p className="px-4 pt-3 pb-1 text-[12px] font-semibold text-[var(--color-text-tertiary)] uppercase tracking-wider">공식 영상</p>
+            {OFFICIAL_VIDEOS.map((v) => (
+              <OfficialVideoCard key={v.id} video={v} />
+            ))}
+          </div>
+
+          {/* 구분선 */}
+          <div className="h-2 bg-[var(--color-surface-primary)] my-2" />
+
+          {/* 관련 영상 섹션 */}
+          <div>
+            <div className="flex items-center justify-between px-4 pt-2 pb-1">
+              <p className="text-[12px] font-semibold text-[var(--color-text-tertiary)] uppercase tracking-wider">관련 영상</p>
+            </div>
+            <div className="grid grid-cols-4" style={{ gap: '5px', padding: '0 5px 5px' }}>
+              {MOCK_VIDEOS.slice(0, 8).map((video) => (
+                <VideoCard key={video.id} video={video} onClick={() => setSelectedVideo(video)} />
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── 공식 영상 탭 ── */}
+      {videoSubTab === 'official' && (
+        <div className="pt-1">
+          {OFFICIAL_VIDEOS.map((v) => (
+            <OfficialVideoCard key={v.id} video={v} />
+          ))}
+        </div>
+      )}
+
+      {/* ── 관련 영상 탭 ── */}
+      {videoSubTab === 'related' && (
+        <div className="pt-1">
+          {/* 4열 그리드 */}
+          <div className="grid grid-cols-4" style={{ gap: '5px', padding: '5px' }}>
+            {sortedVideos.map((video) => (
+              <VideoCard key={video.id} video={video} onClick={() => setSelectedVideo(video)} />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* 플레이어 모달 */}
+      {selectedVideo && <PlayerModal video={selectedVideo} onClose={handleClose} />}
+    </div>
+  )
+}
+
 // ── 메인 페이지 ──────────────────────────────────────────────
 export default function AlbumPage() {
   const router = useRouter()
   const [activeTab, setActiveTab] = useState<Tab>('tracks')
   const [playingTrack, setPlayingTrack] = useState<number | null>(null)
 
-  const handleViewAll = () => {
-    router.push('/')
-  }
+  const MAIN_TABS: { id: Tab; label: string }[] = [
+    { id: 'tracks', label: '수록곡' },
+    { id: 'info', label: '상세정보' },
+    { id: 'videos', label: '영상' },
+  ]
 
   return (
-    <div className="mobile-container bg-[var(--color-surface-bg)] min-h-screen">
+    <div
+      className="mobile-container min-h-screen"
+      style={{
+        background: '#0d0d0d',
+        '--color-surface-bg': '#0d0d0d',
+        '--color-surface-primary': 'rgba(255,255,255,0.08)',
+        '--color-surface-secondary': 'rgba(255,255,255,0.12)',
+        '--color-surface-tertiary': 'rgba(255,255,255,0.12)',
+        '--color-text-primary': '#ffffff',
+        '--color-text-secondary': 'rgba(255,255,255,0.70)',
+        '--color-text-tertiary': 'rgba(255,255,255,0.45)',
+        '--color-text-disabled': 'rgba(255,255,255,0.30)',
+        '--color-border': 'rgba(255,255,255,0.12)',
+        '--color-border-subtle': 'rgba(255,255,255,0.06)',
+      } as React.CSSProperties}
+    >
 
-      {/* ── 헤더 (뒤로가기 + 더보기) */}
+      {/* ── 최상단 바: 뒤로가기(좌) + 더보기(우) */}
       <div className="flex items-center justify-between px-2 pt-4 pb-2">
         <button
           id="btn-album-back"
@@ -134,66 +331,49 @@ export default function AlbumPage() {
         </button>
       </div>
 
-      {/* ── 앨범 커버 + 정보 */}
-      <div className="flex gap-4 px-4 pb-5 pt-1">
-        {/* 커버 이미지 */}
-        <div
-          className="flex-shrink-0 w-24 h-24 rounded-xl shadow-lg overflow-hidden"
-          style={{ background: ALBUM.gradient }}
-        >
-          <div className="w-full h-full flex items-center justify-center opacity-30">
-            <svg width="36" height="36" viewBox="0 0 24 24" fill="white">
-              <path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z" />
-            </svg>
-          </div>
-        </div>
-
-        {/* 텍스트 정보 */}
-        <div className="flex flex-col justify-center gap-0.5 min-w-0">
-          <p className="text-[11px] text-[var(--color-text-tertiary)] uppercase tracking-wider">Album</p>
-          <h1 className="text-[18px] font-bold text-[var(--color-text-primary)] leading-tight truncate">{ALBUM.title}</h1>
-          <p className="text-[13px] text-[var(--color-text-secondary)] truncate">{ALBUM.artist}</p>
-          <p className="text-[12px] text-[var(--color-text-tertiary)]">{ALBUM.releaseDate} · {ALBUM.trackCount}곡</p>
-        </div>
+      {/* ── 앨범 정보: 중앙 정렬 텍스트 */}
+      <div className="text-center px-6 pt-1 pb-4">
+        <h1 className="text-[20px] font-bold text-[var(--color-text-primary)] leading-tight">{ALBUM.title}</h1>
+        <p className="text-[14px] text-[var(--color-text-secondary)] mt-1">{ALBUM.artist}</p>
+        <p className="text-[12px] text-[var(--color-text-tertiary)] mt-0.5">{ALBUM.releaseDate} · {ALBUM.genre}</p>
       </div>
 
-      {/* ── 플레이 버튼 영역 */}
-      <div className="flex gap-2 px-4 pb-5">
-        <button
-          id="btn-album-play-all"
-          className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-full bg-[var(--color-text-primary)] text-white text-[13px] font-semibold transition-opacity active:opacity-80"
-        >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M8 5v14l11-7z" />
-          </svg>
-          전체 재생
-        </button>
-        <button
-          id="btn-album-shuffle"
-          className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-full border border-[var(--color-border)] text-[var(--color-text-primary)] text-[13px] font-semibold transition-colors active:bg-[var(--color-surface-primary)]"
-        >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" className="text-[var(--color-text-secondary)]">
-            <path d="M10.59 9.17L5.41 4 4 5.41l5.17 5.17 1.42-1.41zM14.5 4l2.04 2.04L4 18.59 5.41 20 17.96 7.46 20 9.5V4h-5.5zm.33 9.41l-1.41 1.41 3.13 3.13L14.5 20H20v-5.5l-2.04 2.04-3.13-3.13z" />
-          </svg>
-          셔플 재생
-        </button>
-      </div>
-
-      {/* ── 탭 메뉴 */}
-      <div className="flex border-b border-[var(--color-border)]">
-        {(['tracks', 'info'] as Tab[]).map((tab) => (
+      {/* ── 앨범 커버: 150×150 고정, 중앙 배치, 우하단 재생 버튼 */}
+      <div className="flex justify-center pb-5">
+        <div className="relative" style={{ width: 150, height: 150 }}>
+          <img
+            src="/images/album-nwjns.png"
+            alt={`${ALBUM.title} 앨범 커버`}
+            className="w-full h-full rounded-xl shadow-xl object-cover"
+          />
+          {/* 우하단 재생 버튼 */}
           <button
-            key={tab}
-            id={`tab-${tab}`}
-            onClick={() => setActiveTab(tab)}
+            id="btn-album-cover-play"
+            className="absolute bottom-2 right-2 w-8 h-8 rounded-full bg-white shadow-md flex items-center justify-center transition-transform active:scale-95"
+            aria-label="재생"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" className="text-gray-900 ml-0.5">
+              <path d="M8 5v14l11-7z" />
+            </svg>
+          </button>
+        </div>
+      </div>
+
+
+
+      {/* ── 메인 탭: 수록곡 | 상세정보 | 영상 */}
+      <div className="flex border-b border-[var(--color-border)]">
+        {MAIN_TABS.map((tab) => (
+          <button
+            key={tab.id}
+            id={`tab-${tab.id}`}
+            onClick={() => setActiveTab(tab.id)}
             className={`flex-1 py-2.5 text-[14px] font-medium transition-colors relative ${
-              activeTab === tab
-                ? 'text-[var(--color-text-primary)]'
-                : 'text-[var(--color-text-tertiary)]'
+              activeTab === tab.id ? 'text-[var(--color-text-primary)]' : 'text-[var(--color-text-tertiary)]'
             }`}
           >
-            {tab === 'tracks' ? '수록곡' : '상세 정보'}
-            {activeTab === tab && (
+            {tab.label}
+            {activeTab === tab.id && (
               <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-8 h-[2px] bg-[var(--color-text-primary)] rounded-full" />
             )}
           </button>
@@ -201,31 +381,20 @@ export default function AlbumPage() {
       </div>
 
       {/* ── 탭 컨텐츠 */}
-      {activeTab === 'tracks' ? (
-        <div>
-          {/* 수록곡 목록 */}
-          <div className="divide-y divide-[var(--color-border)]">
-            {TRACKS.map((track) => (
-              <TrackRow
-                key={track.id}
-                track={track}
-                isPlaying={playingTrack === track.id}
-                onClick={() => setPlayingTrack(playingTrack === track.id ? null : track.id)}
-              />
-            ))}
-          </div>
-
-          {/* 구분선 */}
-          <div className="h-[1px] bg-[var(--color-border)] mx-4 mt-2" />
-
-          {/* ✨ 이 음악으로 만든 영상 - 가로 스와이프 섹션 */}
-          <VideoSwipeSection
-            videos={MOCK_VIDEOS}
-            onViewAll={handleViewAll}
-          />
+      {activeTab === 'tracks' && (
+        <div className="divide-y divide-[var(--color-border)]">
+          {TRACKS.map((track) => (
+            <TrackRow
+              key={track.id}
+              track={track}
+              isPlaying={playingTrack === track.id}
+              onClick={() => setPlayingTrack(playingTrack === track.id ? null : track.id)}
+            />
+          ))}
         </div>
-      ) : (
-        /* 상세 정보 탭 */
+      )}
+
+      {activeTab === 'info' && (
         <div className="px-4 py-5">
           <div className="space-y-4">
             {DETAILS.map(({ label, value }) => (
@@ -235,7 +404,6 @@ export default function AlbumPage() {
               </div>
             ))}
           </div>
-
           <div className="mt-6 pt-5 border-t border-[var(--color-border)]">
             <p className="text-[12px] text-[var(--color-text-tertiary)] leading-relaxed">
               본 음원은 저작권법의 보호를 받습니다. 무단 복제 및 배포를 금합니다.
@@ -243,6 +411,8 @@ export default function AlbumPage() {
           </div>
         </div>
       )}
+
+      {activeTab === 'videos' && <VideosTabContent />}
     </div>
   )
 }

@@ -38,12 +38,12 @@ export function SortFilter({ value, onChange }: SortFilterProps) {
       <button
         id="btn-sort-filter"
         onClick={() => setOpen((v) => !v)}
-        className="flex items-center gap-1 px-3 py-2 rounded-full border border-[var(--color-border)] bg-surface-primary text-fg-secondary transition-colors active:bg-surface-secondary"
+        className="flex items-center gap-0.5 text-fg-secondary active:opacity-60 transition-opacity"
       >
-        <span className="text-caption1-strong whitespace-nowrap">{currentLabel}</span>
+        <span className="text-[13px] whitespace-nowrap">{currentLabel}</span>
         <svg
-          width="12"
-          height="12"
+          width="14"
+          height="14"
           viewBox="0 0 24 24"
           fill="currentColor"
           className={`text-fg-tertiary transition-transform duration-200 ${open ? 'rotate-180' : ''}`}

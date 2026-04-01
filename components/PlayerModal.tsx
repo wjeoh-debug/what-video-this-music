@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import { VideoItem } from '@/constants/mockVideos'
 
 interface PlayerModalProps {
@@ -35,11 +36,11 @@ export function PlayerModal({ video, onClose, onViewAll }: PlayerModalProps) {
     return () => window.removeEventListener('keydown', handleKey)
   }, [onClose])
 
-  return (
+  return createPortal(
     <div
       ref={backdropRef}
       id="player-modal-backdrop"
-      className="fixed inset-0 z-[60] flex items-center justify-center p-4"
+      className="fixed inset-0 z-[9999] flex items-center justify-center p-4"
       style={{ background: 'rgba(0,0,0,0.88)', animation: 'fadeIn 0.18s ease-out' }}
       onClick={(e) => {
         if (e.target === backdropRef.current) onClose()
@@ -50,7 +51,6 @@ export function PlayerModal({ video, onClose, onViewAll }: PlayerModalProps) {
         className="relative rounded-2xl overflow-hidden bg-[#111] shadow-2xl"
         style={{
           animation: 'scaleUp 0.18s ease-out',
-          /* 너비 = min(96dvh × 9/16, 92vw): 9:16 비율 완벽 유지 */
           width: 'min(calc(96dvh * 9 / 16), 92vw)',
         }}
         onClick={(e) => e.stopPropagation()}
@@ -82,17 +82,11 @@ export function PlayerModal({ video, onClose, onViewAll }: PlayerModalProps) {
             {video.title}
           </p>
 
-          {/* 크리에이터 + 조회수 (한 줄) */}
-          <div className="flex items-center justify-between mt-1.5 mb-3">
-            {/* 닉네임 */}
-            <div className="flex items-center gap-1 min-w-0">
-              <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor" className="text-white/50 flex-shrink-0">
-                <path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/>
-              </svg>
-              <span className="text-white/70 text-caption1 truncate">{video.creator}</span>
-            </div>
-            {/* 조회수 */}
-            <div className="flex items-center gap-1 flex-shrink-0 ml-2">
+          {/* 크리에이터 · 조회수 */}
+          <div className="flex items-center gap-1.5 mt-1.5 mb-3 min-w-0">
+            <span className="text-white/70 text-caption1 truncate">{video.creator}</span>
+            <span className="text-white/40 text-caption1 flex-shrink-0">·</span>
+            <div className="flex items-center gap-1 flex-shrink-0">
               <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor" className="text-white/50">
                 <path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z" />
               </svg>
@@ -130,6 +124,7 @@ export function PlayerModal({ video, onClose, onViewAll }: PlayerModalProps) {
           to { transform: scale(1); opacity: 1; }
         }
       `}</style>
-    </div>
+    </div>,
+    document.body
   )
 }
