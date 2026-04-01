@@ -180,13 +180,18 @@ function OfficialVideoCard({ video }: { video: (typeof OFFICIAL_VIDEOS)[0] }) {
 
 // ── 피드 블록 생성 (공식 3개 + 짧은 영상 4개 반복) ──────────────
 type FeedBlock =
-  | { type: 'official'; id: string; items: typeof OFFICIAL_VIDEOS }
+  | { type: 'official'; id: string; items: (typeof OFFICIAL_VIDEOS)[number][] }
   | { type: 'shorts'; id: string; items: VideoItem[] }
 
 function buildFeedBlocks(blockCount: number): FeedBlock[] {
   const blocks: FeedBlock[] = []
   for (let i = 0; i < blockCount; i++) {
-    blocks.push({ type: 'official', id: `official-${i}`, items: OFFICIAL_VIDEOS })
+    // 공식 영상 2개씩 순환
+    const officialItems = Array.from(
+      { length: 2 },
+      (_, j) => OFFICIAL_VIDEOS[(i * 2 + j) % OFFICIAL_VIDEOS.length],
+    )
+    blocks.push({ type: 'official', id: `official-${i}`, items: officialItems })
     const start = (i * 4) % MOCK_VIDEOS.length
     blocks.push({
       type: 'shorts',
