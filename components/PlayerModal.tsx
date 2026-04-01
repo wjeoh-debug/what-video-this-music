@@ -6,9 +6,10 @@ import { VideoItem } from '@/constants/mockVideos'
 interface PlayerModalProps {
   video: VideoItem
   onClose: () => void
+  onViewAll?: () => void
 }
 
-export function PlayerModal({ video, onClose }: PlayerModalProps) {
+export function PlayerModal({ video, onClose, onViewAll }: PlayerModalProps) {
   const backdropRef = useRef<HTMLDivElement>(null)
 
   const thumbnailStyle = {
@@ -35,80 +36,87 @@ export function PlayerModal({ video, onClose }: PlayerModalProps) {
   }, [onClose])
 
   return (
-    // z-[60] → layout의 CloseButton(z-50) 위에 덮여서 배경 닫기 버튼이 눌리지 않음
     <div
       ref={backdropRef}
       id="player-modal-backdrop"
-      className="fixed inset-0 z-[60] flex items-center justify-center p-5"
-      style={{ background: 'rgba(0,0,0,0.75)', animation: 'fadeIn 0.18s ease-out' }}
+      className="fixed inset-0 z-[60] flex items-center justify-center p-4"
+      style={{ background: 'rgba(0,0,0,0.88)', animation: 'fadeIn 0.18s ease-out' }}
       onClick={(e) => {
         if (e.target === backdropRef.current) onClose()
       }}
     >
       {/* ── 팝업 카드 ── */}
       <div
-        className="relative w-full max-w-xs rounded-2xl overflow-hidden bg-[#111] shadow-2xl"
-        style={{ animation: 'scaleUp 0.18s ease-out' }}
+        className="relative rounded-2xl overflow-hidden bg-[#111] shadow-2xl"
+        style={{
+          animation: 'scaleUp 0.18s ease-out',
+          /* 너비 = min(96dvh × 9/16, 92vw): 9:16 비율 완벽 유지 */
+          width: 'min(calc(96dvh * 9 / 16), 92vw)',
+        }}
         onClick={(e) => e.stopPropagation()}
       >
-
-        {/* 닫기 버튼 (카드 우상단) */}
-        <button
-          id="player-modal-close"
-          onClick={onClose}
-          className="absolute top-3 right-3 z-10 w-8 h-8 rounded-full bg-black/50 backdrop-blur-sm flex items-center justify-center"
-          aria-label="닫기"
+        {/* ── 비디오 영역: 높이 = 전체 - 하단 정보(140px) ── */}
+        <div
+          className="relative w-full bg-black"
+          style={{ height: 'min(calc(96dvh - 140px), calc(92vw * 16 / 9 - 140px))' }}
         >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="white">
-            <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z" />
-          </svg>
-        </button>
-
-        {/* ── 비디오 영역 ── */}
-        <div className="relative overflow-hidden bg-black" style={{ height: '52vh' }}>
           {/* 그라디언트 썸네일 (로딩 폴백) */}
           <div className="absolute inset-0" style={thumbnailStyle} />
 
-          {/* iframe 플레이어: 9:16 비율로 중앙 정렬 */}
-          <div
-            className="absolute top-0 bottom-0 left-1/2"
-            style={{ transform: 'translateX(-50%)', width: 'calc(52vh * 9 / 16)' }}
-          >
-            <iframe
-              id={`player-iframe-${video.id}`}
-              src={video.embedUrl}
-              className="w-full h-full"
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-              allowFullScreen
-              title={video.title}
-              style={{ border: 'none' }}
-            />
-          </div>
+          {/* iframe: 절대 위치로 비디오 영역 전체 채우기 */}
+          <iframe
+            id={`player-iframe-${video.id}`}
+            src={video.embedUrl}
+            className="absolute inset-0 w-full h-full"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allowFullScreen
+            title={video.title}
+            style={{ border: 'none' }}
+          />
         </div>
 
-        {/* ── 영상 정보 & 버튼 ── */}
-        <div className="px-4 pt-3 pb-4">
+        {/* ── 영상 정보 & 버튼: flex-none으로 항상 노출 ── */}
+        <div className="flex-none px-4 pt-3 pb-4 bg-[#111]">
           {/* 제목 */}
           <p className="text-white text-body2-strong line-clamp-2 leading-snug">
             {video.title}
           </p>
 
-          {/* 조회수 */}
-          <div className="flex items-center gap-1 mt-1.5 mb-4">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" className="text-white/50">
-              <path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z" />
-            </svg>
-            <span className="text-white/60 text-caption1">{video.views}</span>
+          {/* 크리에이터 + 조회수 (한 줄) */}
+          <div className="flex items-center justify-between mt-1.5 mb-3">
+            {/* 닉네임 */}
+            <div className="flex items-center gap-1 min-w-0">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor" className="text-white/50 flex-shrink-0">
+                <path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/>
+              </svg>
+              <span className="text-white/70 text-caption1 truncate">{video.creator}</span>
+            </div>
+            {/* 조회수 */}
+            <div className="flex items-center gap-1 flex-shrink-0 ml-2">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor" className="text-white/50">
+                <path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z" />
+              </svg>
+              <span className="text-white/60 text-caption1">{video.views}</span>
+            </div>
           </div>
 
-          {/* 전체 영상 보기 버튼 */}
-          <button
-            id={`btn-view-all-${video.id}`}
-            onClick={onClose}
-            className="w-full py-3.5 rounded-xl bg-white text-gray-900 text-body2-strong transition-opacity active:opacity-80"
-          >
-            전체 영상 보기
-          </button>
+          {/* 하단 버튼 2개 */}
+          <div className="flex gap-2">
+            <button
+              id={`btn-view-all-${video.id}`}
+              onClick={() => { onClose(); onViewAll?.() }}
+              className="flex-1 py-3 rounded-xl bg-white text-gray-900 text-body2-strong transition-opacity active:opacity-80"
+            >
+              전체 영상 보기
+            </button>
+            <button
+              id={`btn-close-modal-${video.id}`}
+              onClick={onClose}
+              className="flex-none px-5 py-3 rounded-xl border border-white/30 text-white text-body2-strong transition-opacity active:opacity-60"
+            >
+              닫기
+            </button>
+          </div>
         </div>
       </div>
 
