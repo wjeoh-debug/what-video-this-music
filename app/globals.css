@@ -184,12 +184,12 @@ ol {
 
 /* Mobile Web (App Webview) Styles */
 .mobile-container {
-  max-width: 530px;
+  max-width: 430px;
   margin: 0 auto;
   min-height: 100vh;
 }
 
-@media screen and (min-width: 531px) {
+@media screen and (min-width: 431px) {
   .mobile-container {
     box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
   }
