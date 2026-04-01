@@ -276,7 +276,7 @@ function VideosTabContent() {
             ) : (
               <div key={block.id}>
                 <div className="h-[1px] bg-[var(--color-border)] mx-4 my-2" />
-                <div className="grid grid-cols-4" style={{ gap: '5px', padding: '0 5px 2px' }}>
+                <div className="grid grid-cols-2" style={{ gap: '8px', padding: '0 12px 4px' }}>
                   {block.items.map((video, idx) => (
                     <VideoCard
                       key={`${block.id}-${idx}`}
@@ -285,7 +285,7 @@ function VideosTabContent() {
                     />
                   ))}
                 </div>
-                <div className="h-[1px] bg-[var(--color-border)] mx-4 mt-2" />
+                <div className="h-[1px] bg-[var(--color-border)] mx-4 mt-4" />
               </div>
             )
           )}
@@ -312,7 +312,7 @@ function VideosTabContent() {
       {/* ── 짧은 영상 탭 ── */}
       {videoSubTab === 'related' && (
         <div className="pt-1">
-          <div className="grid grid-cols-4" style={{ gap: '5px', padding: '5px' }}>
+          <div className="grid grid-cols-2" style={{ gap: '8px', padding: '12px' }}>
             {sortedVideos.map((video) => (
               <VideoCard key={video.id} video={video} onClick={() => setSelectedVideo(video)} />
             ))}
