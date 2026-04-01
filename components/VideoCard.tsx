@@ -38,7 +38,7 @@ function PlatformBadge({ platform }: { platform: VideoItem['platform'] }) {
     },
   }
 
-  const { bg, label, icon } = config[platform]
+  const { bg, icon } = config[platform]
 
   return (
     <div className={`flex items-center justify-center ${bg} rounded-full w-6 h-6`}>
