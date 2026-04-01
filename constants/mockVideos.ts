@@ -38,8 +38,8 @@ export const MOCK_VIDEOS: VideoItem[] = [
     publishedAt: '2024-07-15',
     gradientFrom: '#FF512F',
     gradientTo: '#DD2476',
-    embedUrl: 'https://www.youtube.com/embed/dQw4w9WgXcQ?autoplay=1&rel=0',
-    originalUrl: 'https://www.youtube.com/shorts/dQw4w9WgXcQ',
+    embedUrl: 'https://www.youtube.com/embed/wKCaFsdzBj4?autoplay=1&rel=0',
+    originalUrl: 'https://www.youtube.com/shorts/wKCaFsdzBj4',
     duration: '0:23',
   },
   {

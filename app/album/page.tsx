@@ -1,7 +1,7 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
-import { useState, useCallback, useMemo } from 'react'
+import { useState, useRef, useEffect, useCallback, useMemo } from 'react'
 import { MOCK_VIDEOS, MOCK_SONG, type VideoItem } from '@/constants/mockVideos'
 import { VideoCard } from '@/components/VideoCard'
 import { SortFilter, type SortType } from '@/components/SortFilter'
@@ -178,13 +178,48 @@ function OfficialVideoCard({ video }: { video: (typeof OFFICIAL_VIDEOS)[0] }) {
   )
 }
 
+// ── 피드 블록 생성 (공식 3개 + 짧은 영상 4개 반복) ──────────────
+type FeedBlock =
+  | { type: 'official'; id: string; items: typeof OFFICIAL_VIDEOS }
+  | { type: 'shorts'; id: string; items: VideoItem[] }
+
+function buildFeedBlocks(blockCount: number): FeedBlock[] {
+  const blocks: FeedBlock[] = []
+  for (let i = 0; i < blockCount; i++) {
+    blocks.push({ type: 'official', id: `official-${i}`, items: OFFICIAL_VIDEOS })
+    const start = (i * 4) % MOCK_VIDEOS.length
+    blocks.push({
+      type: 'shorts',
+      id: `shorts-${i}`,
+      items: Array.from({ length: 4 }, (_, j) => MOCK_VIDEOS[(start + j) % MOCK_VIDEOS.length]),
+    })
+  }
+  return blocks
+}
+
 // ── 영상 탭 전체 컨텐츠 ───────────────────────────────────────
 function VideosTabContent() {
   const [videoSubTab, setVideoSubTab] = useState<VideoSubTab>('all')
   const [sortType, setSortType] = useState<SortType>('popular')
   const [selectedVideo, setSelectedVideo] = useState<VideoItem | null>(null)
+  const [allBlockCount, setAllBlockCount] = useState(2)
+  const sentinelRef = useRef<HTMLDivElement>(null)
 
   const sortedVideos = useMemo(() => sortVideos(MOCK_VIDEOS, sortType), [sortType])
+  const allFeedBlocks = useMemo(() => buildFeedBlocks(allBlockCount), [allBlockCount])
+
+  // 인피니티 스크롤 — 전체 탭일 때만 동작
+  useEffect(() => {
+    if (videoSubTab !== 'all') return
+    const el = sentinelRef.current
+    if (!el) return
+    const observer = new IntersectionObserver(
+      ([entry]) => { if (entry.isIntersecting) setAllBlockCount((c) => c + 2) },
+      { threshold: 0.1 },
+    )
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [videoSubTab])
 
   const handleClose = useCallback(() => setSelectedVideo(null), [])
 
@@ -196,7 +231,7 @@ function VideosTabContent() {
 
   return (
     <div>
-      {/* 하위 탭: 전체 | 공식 영상 | 관련 영상 + 정렬 필터 */}
+      {/* 하위 탭: 전체 | 공식 영상 | 짧은 영상 + 정렬 필터 */}
       <div className="flex items-center border-b border-[var(--color-border)] px-4">
         <div className="flex flex-1">
           {VIDEO_SUB_TABS.map((tab) => (
@@ -215,7 +250,7 @@ function VideosTabContent() {
             </button>
           ))}
         </div>
-        {/* 정렬 필터: 관련 영상 탭일 때만 표시 */}
+        {/* 정렬 필터: 짧은 영상 탭일 때만 표시 */}
         {videoSubTab === 'related' && (
           <div className="flex-shrink-0 pb-1">
             <SortFilter value={sortType} onChange={setSortType} />
@@ -223,29 +258,38 @@ function VideosTabContent() {
         )}
       </div>
 
-      {/* ── 전체 탭 ── */}
+      {/* ── 전체 탭: 공식 3 + 짧은 영상 4 반복 믹스 피드 ── */}
       {videoSubTab === 'all' && (
-        <div>
-          {/* 공식 영상 섹션 */}
-          <div className="pt-1">
-            <p className="px-4 pt-3 pb-1 text-[12px] font-semibold text-[var(--color-text-tertiary)] uppercase tracking-wider">공식 영상</p>
-            {OFFICIAL_VIDEOS.map((v) => (
-              <OfficialVideoCard key={v.id} video={v} />
-            ))}
-          </div>
-
-          {/* 구분선 */}
-          <div className="h-2 bg-[var(--color-surface-primary)] my-2" />
-
-          {/* 관련 영상 섹션 */}
-          <div>
-            <div className="flex items-center justify-between px-4 pt-2 pb-1">
-              <p className="text-[12px] font-semibold text-[var(--color-text-tertiary)] uppercase tracking-wider">관련 영상</p>
-            </div>
-            <div className="grid grid-cols-4" style={{ gap: '5px', padding: '0 5px 5px' }}>
-              {MOCK_VIDEOS.slice(0, 8).map((video) => (
-                <VideoCard key={video.id} video={video} onClick={() => setSelectedVideo(video)} />
-              ))}
+        <div className="pt-1">
+          {allFeedBlocks.map((block) =>
+            block.type === 'official' ? (
+              <div key={block.id}>
+                {block.items.map((v) => (
+                  <OfficialVideoCard key={`${block.id}-${v.id}`} video={v} />
+                ))}
+              </div>
+            ) : (
+              <div key={block.id}>
+                <div className="h-[1px] bg-[var(--color-border)] mx-4 my-2" />
+                <div className="grid grid-cols-4" style={{ gap: '5px', padding: '0 5px 2px' }}>
+                  {block.items.map((video, idx) => (
+                    <VideoCard
+                      key={`${block.id}-${idx}`}
+                      video={video}
+                      onClick={() => setSelectedVideo(video)}
+                    />
+                  ))}
+                </div>
+                <div className="h-[1px] bg-[var(--color-border)] mx-4 mt-2" />
+              </div>
+            )
+          )}
+          {/* 인피니티 스크롤 센티넬 */}
+          <div ref={sentinelRef} className="h-10 flex items-center justify-center">
+            <div className="flex gap-1">
+              <span className="w-1.5 h-1.5 bg-[var(--color-text-tertiary)] rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+              <span className="w-1.5 h-1.5 bg-[var(--color-text-tertiary)] rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+              <span className="w-1.5 h-1.5 bg-[var(--color-text-tertiary)] rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
             </div>
           </div>
         </div>
@@ -260,10 +304,9 @@ function VideosTabContent() {
         </div>
       )}
 
-      {/* ── 관련 영상 탭 ── */}
+      {/* ── 짧은 영상 탭 ── */}
       {videoSubTab === 'related' && (
         <div className="pt-1">
-          {/* 4열 그리드 */}
           <div className="grid grid-cols-4" style={{ gap: '5px', padding: '5px' }}>
             {sortedVideos.map((video) => (
               <VideoCard key={video.id} video={video} onClick={() => setSelectedVideo(video)} />
